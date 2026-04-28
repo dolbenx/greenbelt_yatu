@@ -2,36 +2,98 @@
 
     'use strict';
 
+    function hidePreloader() {
+        if ($('#preloader').length) {
+            $('#preloader').delay(350).fadeOut('slow');
+            $('body').delay(350).css({ 'overflow': 'visible' });
+        }
+    }
+
     $(window).on('load', function () {
-        $('#preloader').delay(350).fadeOut('slow');
-        $('body').delay(350).css({ 'overflow': 'visible' });
-    })
+        hidePreloader();
+        // Fallback for dynamic preloader
+        setTimeout(hidePreloader, 1000);
+    });
+
+    // Load Dynamic Components Immediately
+    if ($('#footer-placeholder').length) {
+        $('#footer-placeholder').load('components/footer.html');
+    }
+    if ($('#sidebar-placeholder').length) {
+        $('#sidebar-placeholder').load('components/sidebar.html');
+    }
+    if ($('#menubar-placeholder').length) {
+        $('#menubar-placeholder').load('components/menubar.html');
+    }
+    if ($('#header-placeholder').length) {
+        let headerType = $('#header-placeholder').data('header-type');
+        if (headerType === 'index') {
+            $('#header-placeholder').load('components/header-index.html');
+        } else {
+            $('#header-placeholder').load('components/header.html');
+        }
+    }
+    if ($('#preloader-placeholder').length) {
+        $('#preloader-placeholder').load('components/preloader.html', function () {
+            // Check again after a short delay to ensure DOM is ready
+            setTimeout(function() {
+                if (document.readyState === 'complete') {
+                    hidePreloader();
+                }
+            }, 100);
+        });
+    }
+    if ($('#breadcrumb-placeholder').length) {
+        let title = $('#breadcrumb-placeholder').data('title');
+        let bg = $('#breadcrumb-placeholder').data('bg');
+        let thumb = $('#breadcrumb-placeholder').data('thumb');
+        let extraClass = $('#breadcrumb-placeholder').data('class');
+
+        $('#breadcrumb-placeholder').load('components/breadcrumb.html', function () {
+            if (title) {
+                $('#breadcrumb-main-title').text(title);
+                $('#breadcrumb-nav-link').text(title);
+            }
+            if (bg) {
+                $('#breadcrumb-bg-img').css('background-image', 'url(' + bg + ')');
+            }
+            if (thumb) {
+                $('#breadcrumb-thumb-img').attr('src', thumb);
+            }
+            if (extraClass) {
+                $(this).find('section').addClass(extraClass);
+            }
+        });
+    }
+    if ($('#contact-info-placeholder').length) {
+        $('#contact-info-placeholder').load('components/contact-info.html');
+    }
 
     /*--------------------------------------------------------------
     01 Open Sidebar JS
     --------------------------------------------------------------*/
-    $('[data-toggle="sidebar"]').on('click', function (e) {
+    $(document).on('click', '[data-toggle="sidebar"]', function (e) {
         e.preventDefault();
         $('body').toggleClass('overflow-hidden');
         $('.off-canvas-sidebar').toggleClass('active');
         $('.off-canvas-sidebar-body').toggleClass('active');
     });
 
-    $('[data-close="sidebar"]').on('click', function (e) {
+    $(document).on('click', '[data-close="sidebar"]', function (e) {
         e.preventDefault();
         $('body').removeClass('overflow-hidden');
         $('.off-canvas-sidebar').removeClass('active');
         $('.off-canvas-sidebar-body').removeClass('active');
     });
 
-    $('[data-toggle="menubar"]').on('click', function (e) {
+    $(document).on('click', '[data-toggle="menubar"]', function (e) {
         e.preventDefault();
         $('body').toggleClass('overflow-hidden');
         $('.off-canvas-menubar').toggleClass('active');
         $('.off-canvas-menubar-body').toggleClass('active');
     });
 
-    $('[data-close="menubar"]').on('click', function (e) {
+    $(document).on('click', '[data-close="menubar"]', function (e) {
         e.preventDefault();
         $('body').removeClass('overflow-hidden');
         $('.off-canvas-menubar').removeClass('active');
@@ -42,7 +104,7 @@
     /*--------------------------------------------------------------
     02 Mobile Dropdown JS
     --------------------------------------------------------------*/
-    $('.off-canvas-menu .has-dropdown > a').on('click', function (e) {
+    $(document).on('click', '.off-canvas-menu .has-dropdown > a', function (e) {
         e.preventDefault();
         $(this).parent().toggleClass('active');
         $(this).parent().children('.sub-menu').slideToggle();
@@ -55,8 +117,8 @@
     --------------------------------------------------------------*/
 
     let win = $(window);
-    let sticky_id = $(".header-area");
     win.on('scroll', function () {
+        let sticky_id = $(".header-section, .header-section-1");
         let scroll = win.scrollTop();
         if (scroll < 245) {
             sticky_id.removeClass("sticky-header");
@@ -154,9 +216,33 @@ if (jQuery("[data-fancybox]").length > 0) {
         init.on('slideChange', animated);
     }
 
+    // Swiper Loop Fix Helper
+    function getSwiperOptions(selector, options) {
+        if (options.loop) {
+            let slideCount = jQuery(selector).find('.swiper-slide').length;
+            let slidesPerView = options.slidesPerView || 1;
+            if (typeof slidesPerView === 'string' && slidesPerView.indexOf('auto') === -1) {
+                slidesPerView = parseFloat(slidesPerView);
+            }
+            // If slidesPerView is not a number (like 'auto'), we might need a different check
+            // but for most cases here it's a number or a breakpoint value.
+            // Check breakpoints as well
+            if (options.breakpoints) {
+                Object.values(options.breakpoints).forEach(br => {
+                    if (br.slidesPerView > slidesPerView) slidesPerView = br.slidesPerView;
+                });
+            }
+
+            if (slideCount <= slidesPerView) {
+                options.loop = false;
+            }
+        }
+        return options;
+    }
+
     if (jQuery(".hero-slider-active-1").length > 0) {
         let sliderActive1 = '.hero-slider-active-1 .swiper';
-        let sliderInit1 = new Swiper(sliderActive1, {
+        let sliderInit1 = new Swiper(sliderActive1, getSwiperOptions(sliderActive1, {
             slidesPerView: 1,
             slidesPerColumn: 1,
             paginationClickable: true,
@@ -177,14 +263,14 @@ if (jQuery("[data-fancybox]").length > 0) {
                 prevEl: '.hero-slider-button-prev-1',
             },
             a11y: false
-        });
+        }));
 
         animateSwiperElements(sliderActive1, sliderInit1);
     }
 
     if (jQuery(".hero-slider-active-2").length > 0) {
         let sliderActive2 = '.hero-slider-active-2 .swiper';
-        let sliderInit2 = new Swiper(sliderActive2, {
+        let sliderInit2 = new Swiper(sliderActive2, getSwiperOptions(sliderActive2, {
             slidesPerView: 1,
             slidesPerColumn: 1,
             paginationClickable: true,
@@ -205,14 +291,14 @@ if (jQuery("[data-fancybox]").length > 0) {
                 prevEl: '.hero-slider-button-prev-2',
             },
             a11y: false
-        });
+        }));
 
         animateSwiperElements(sliderActive2, sliderInit2);
     }
 
     if (jQuery(".hero-slider-active-3").length > 0) {
         let sliderActive3 = '.hero-slider-active-3 .swiper';
-        let sliderInit3 = new Swiper(sliderActive3, {
+        let sliderInit3 = new Swiper(sliderActive3, getSwiperOptions(sliderActive3, {
             slidesPerView: 1,
             slidesPerColumn: 1,
             paginationClickable: true,
@@ -236,7 +322,7 @@ if (jQuery("[data-fancybox]").length > 0) {
                 prevEl: '.hero-slider-button-prev-3',
             },
             a11y: false
-        });
+        }));
 
 animateSwiperElements(sliderActive3, sliderInit3);
     }
@@ -246,7 +332,7 @@ animateSwiperElements(sliderActive3, sliderInit3);
     09 Camping Slider Active JS
     --------------------------------------------------------------*/
     if (jQuery(".camping-slider-active .swiper").length > 0) {
-        let campingSlider = new Swiper('.camping-slider-active .swiper', {
+        let campingSlider = new Swiper('.camping-slider-active .swiper', getSwiperOptions('.camping-slider-active .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 1,
@@ -285,11 +371,11 @@ animateSwiperElements(sliderActive3, sliderInit3);
                     slidesPerView: 3,
                 },
             },
-        })
+        }))
     }
 
     if (jQuery(".camping-slider-active-2 .swiper").length > 0) {
-        let campingSlider2 = new Swiper('.camping-slider-active-2 .swiper', {
+        let campingSlider2 = new Swiper('.camping-slider-active-2 .swiper', getSwiperOptions('.camping-slider-active-2 .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 1,
@@ -329,11 +415,11 @@ animateSwiperElements(sliderActive3, sliderInit3);
                     slidesPerView: 3,
                 },
             },
-        })
+        }))
     }
 
     if (jQuery(".camping-slider-active-3 .swiper").length > 0) {
-        let campingSlider2 = new Swiper('.camping-slider-active-3 .swiper', {
+        let campingSlider2 = new Swiper('.camping-slider-active-3 .swiper', getSwiperOptions('.camping-slider-active-3 .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 1,
@@ -370,7 +456,7 @@ animateSwiperElements(sliderActive3, sliderInit3);
                     slidesPerView: 3,
                 },
             },
-        })
+        }))
     }
 
 
@@ -378,7 +464,7 @@ animateSwiperElements(sliderActive3, sliderInit3);
     10 Completed Project Slider Active JS
     --------------------------------------------------------------*/
     if (jQuery(".completed-project-slider-active .swiper").length > 0) {
-        let completedProjectSlider = new Swiper('.completed-project-slider-active .swiper', {
+        let completedProjectSlider = new Swiper('.completed-project-slider-active .swiper', getSwiperOptions('.completed-project-slider-active .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 1,
@@ -401,7 +487,7 @@ animateSwiperElements(sliderActive3, sliderInit3);
                 prevEl: '.completed-project-button-prev',
             },
 
-a11y: false,
+            a11y: false,
 
             breakpoints: {
                 320: {
@@ -417,11 +503,11 @@ a11y: false,
                     slidesPerView: 2.5,
                 },
             },
-        })
+        }))
     }
 
     if (jQuery(".completed-project-slider-active-2 .swiper").length > 0) {
-        let completedProjectSlider2 = new Swiper('.completed-project-slider-active-2 .swiper', {
+        let completedProjectSlider2 = new Swiper('.completed-project-slider-active-2 .swiper', getSwiperOptions('.completed-project-slider-active-2 .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 1,
@@ -460,7 +546,7 @@ a11y: false,
                     slidesPerView: 2.5,
                 },
             },
-        })
+        }))
     }
 
 
@@ -468,7 +554,7 @@ a11y: false,
     11 Testimonial Slider Active JS
     --------------------------------------------------------------*/
     if (jQuery(".testimonial-slider-active .swiper").length > 0) {
-        let testimonialSlider = new Swiper('.testimonial-slider-active .swiper', {
+        let testimonialSlider = new Swiper('.testimonial-slider-active .swiper', getSwiperOptions('.testimonial-slider-active .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 1.3,
@@ -518,14 +604,14 @@ a11y: false,
                     slidesPerView: 1.3,
                 },
             },
-        })
+        }))
     }
 
     /*--------------------------------------------------------------
    12 Blog Slider Active JS
    --------------------------------------------------------------*/
     if (jQuery(".blog-slider-active .swiper").length > 0) {
-        let blogSlider = new Swiper('.blog-slider-active .swiper', {
+        let blogSlider = new Swiper('.blog-slider-active .swiper', getSwiperOptions('.blog-slider-active .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 2,
@@ -563,16 +649,15 @@ a11y: false,
                 1440: {
                     slidesPerView: 2.7,
                 },
-
-},
-        })
+            },
+        }))
     }
 
     /*--------------------------------------------------------------
    13 What We Do Slider Active JS
    --------------------------------------------------------------*/
     if (jQuery(".whatwedo-slider-active .swiper").length > 0) {
-        let whatwedoSlider = new Swiper('.whatwedo-slider-active .swiper', {
+        let whatwedoSlider = new Swiper('.whatwedo-slider-active .swiper', getSwiperOptions('.whatwedo-slider-active .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 4,
@@ -611,14 +696,14 @@ a11y: false,
                     slidesPerView: 4.7,
                 },
             },
-        })
+        }))
     }
 
     /*--------------------------------------------------------------
    14 Testimonial Slider Active JS
    --------------------------------------------------------------*/
     if (jQuery(".testimonial-slider-active-2 .swiper").length > 0) {
-        let testimonialSlider = new Swiper('.testimonial-slider-active-2 .swiper', {
+        let testimonialSlider = new Swiper('.testimonial-slider-active-2 .swiper', getSwiperOptions('.testimonial-slider-active-2 .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 3,
@@ -654,14 +739,14 @@ a11y: false,
                     slidesPerView: 3,
                 },
             },
-        })
+        }))
     }
 
     /*--------------------------------------------------------------
     15 Gallery Slider Active JS
     --------------------------------------------------------------*/
     if (jQuery(".gallery-slider-active .swiper").length > 0) {
-        let gallerySlider = new Swiper('.gallery-slider-active .swiper', {
+        let gallerySlider = new Swiper('.gallery-slider-active .swiper', getSwiperOptions('.gallery-slider-active .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 1,
@@ -682,14 +767,14 @@ a11y: false,
             },
 
             a11y: false,
-        })
+        }))
     }
 
     /*--------------------------------------------------------------
    16 Service Slider Active JS
    --------------------------------------------------------------*/
     if (jQuery(".service-slider-active .swiper").length > 0) {
-        let serviceSlider = new Swiper('.service-slider-active .swiper', {
+        let serviceSlider = new Swiper('.service-slider-active .swiper', getSwiperOptions('.service-slider-active .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 3,
@@ -722,18 +807,17 @@ a11y: false,
                     slidesPerView: 2,
                 },
                 1200: {
-
-slidesPerView: 3,
+                    slidesPerView: 3,
                 },
             },
-        })
+        }))
     }
 
     /*--------------------------------------------------------------
    17 Recent Course Slider Active JS
    --------------------------------------------------------------*/
     if (jQuery(".recent-course-slider-active .swiper").length > 0) {
-        let courseSlider = new Swiper('.recent-course-slider-active .swiper', {
+        let courseSlider = new Swiper('.recent-course-slider-active .swiper', getSwiperOptions('.recent-course-slider-active .swiper', {
             loop: true,
             spaceBetween: 30,
             slidesPerView: 1,
@@ -754,7 +838,22 @@ slidesPerView: 3,
             },
 
             a11y: false,
-        })
+
+            breakpoints: {
+                320: {
+                    slidesPerView: 1,
+                },
+                768: {
+                    slidesPerView: 1,
+                },
+                1024: {
+                    slidesPerView: 1,
+                },
+                1200: {
+                    slidesPerView: 1,
+                },
+            },
+        }))
     }
 
     /*--------------------------------------------------------------
